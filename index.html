@@ -72,10 +72,21 @@
         .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; }
         .reveal.show { opacity: 1; transform: none; }
 
-        .bg-theme { background-image: linear-gradient(to bottom right, #64748b, #cbd5e1, #64748b); }
+        .bg-theme { background: none; }
+        /* one continuous slate gradient across the whole page (same slate-500 / 400 / 300 tones) */
+        body {
+            min-height: 100vh; background-color: #94a3b8;
+            background-image:
+                radial-gradient(1000px 700px at 88% 3%,  rgba(255,255,255,.34), transparent 70%),
+                radial-gradient(900px 700px at 6% 24%,   rgba(255,255,255,.26), transparent 70%),
+                radial-gradient(1000px 800px at 94% 48%, rgba(255,255,255,.26), transparent 70%),
+                radial-gradient(900px 700px at 4% 70%,   rgba(255,255,255,.24), transparent 70%),
+                linear-gradient(180deg, #7a889d 0%, #a9b6c8 14%, #cbd5e1 30%, #a3b0c3 48%, #cbd5e1 66%, #94a3b8 84%, #7a889d 100%);
+        }
+        .footer-fade { background: linear-gradient(to bottom, transparent 0, #1f2937 7rem); }
     </style>
 </head>
-<body class="bg-slate-500 text-dark antialiased">
+<body class="text-dark antialiased">
 
     <!-- Icon sprites -->
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -240,9 +251,9 @@
     </section>
 
     <!-- Quick Stats -->
-    <section class="bg-white border-b border-gray-100">
-        <div class="max-w-6xl mx-auto px-5 md:px-6 py-8">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-6 text-center md:divide-x divide-gray-200">
+    <section>
+        <div class="max-w-5xl mx-auto px-5 md:px-6 py-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-6 text-center md:divide-x divide-gray-200 bg-white/90 rounded-2xl border border-gray-100 shadow-lg px-2 py-4 md:py-6">
                 <div class="p-3 md:p-4">
                     <div class="text-2xl md:text-3xl font-bold text-dark">300+</div>
                     <div class="text-sm md:text-base text-muted mt-1">ลูกค้าพึงพอใจ</div>
@@ -268,7 +279,7 @@
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 reveal">
                 <div class="text-center md:text-left">
-                    <span class="inline-block px-4 py-1.5 bg-slate-300 text-dark text-sm font-medium rounded-full mb-3">รถยนต์</span>
+                    <span class="inline-block px-4 py-1.5 bg-white/60 text-dark text-sm font-medium rounded-full mb-3">รถยนต์</span>
                     <h2 class="text-2xl md:text-3xl font-bold text-dark">รถยนต์ให้เช่า</h2>
                     <p class="text-dark mt-2 text-base md:text-lg">รถทุกคันมีประกัน สภาพดี พร้อมใช้งาน</p>
                 </div>
@@ -496,7 +507,7 @@
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 reveal">
                 <div class="text-center md:text-left">
-                    <span class="inline-block px-4 py-1.5 bg-slate-300 text-dark text-sm font-medium rounded-full mb-3">มอเตอร์ไซค์</span>
+                    <span class="inline-block px-4 py-1.5 bg-white/60 text-dark text-sm font-medium rounded-full mb-3">มอเตอร์ไซค์</span>
                     <h2 class="text-2xl md:text-3xl font-bold text-dark">มอเตอร์ไซค์ให้เช่า</h2>
                     <p class="text-dark mt-2 text-base md:text-lg">รถทุกคันมีประกัน สภาพดี พร้อมใช้งาน</p>
                 </div>
@@ -571,10 +582,10 @@
     </section>
 
     <!-- Conditions -->
-    <section id="conditions" class="bg-gradient-to-br from-slate-400 via-slate-300 to-slate-400 py-16 md:py-24">
+    <section id="conditions" class="py-16 md:py-24">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="text-center mb-12 reveal">
-                <span class="inline-block px-4 py-1.5 bg-slate-400 text-dark text-sm font-medium rounded-full mb-3">เงื่อนไข</span>
+                <span class="inline-block px-4 py-1.5 bg-white/60 text-dark text-sm font-medium rounded-full mb-3">เงื่อนไข</span>
                 <h2 class="text-2xl md:text-3xl font-bold text-dark">เงื่อนไขและเอกสารการเช่า</h2>
             </div>
 
@@ -717,7 +728,7 @@
     </section>
 
     <!-- Contact -->
-    <section id="contact" class="py-16 md:py-20 bg-slate-300">
+    <section id="contact" class="py-16 md:py-20">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="text-center mb-12 reveal">
                 <span class="inline-block px-4 py-1.5 bg-accent/10 text-accent text-sm font-medium rounded-full mb-3">ติดต่อเรา</span>
@@ -763,7 +774,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white py-12 md:py-14">
+    <footer class="footer-fade text-white pt-28 pb-12 md:pb-14">
         <div class="max-w-6xl mx-auto px-5 md:px-6 text-center">
             <img src="img/Screenshot 2026-03-13 105549 (1).jpg" alt="Lampang Rental Car" class="h-24 w-24 rounded-xl mx-auto mb-5 object-cover shadow-lg">
             <h3 class="font-bold text-xl mb-2">รถเช่าลำปาง</h3>
