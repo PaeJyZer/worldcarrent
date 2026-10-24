@@ -32,16 +32,69 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Noto Sans Thai', sans-serif; }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+
+        /* ---------- Slider ---------- */
+        .track {
+            display: flex;
+            gap: 1.25rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding: 0.5rem 0.25rem 1.25rem;
+        }
+        .track::-webkit-scrollbar { display: none; }
+        .slide { flex: 0 0 84%; scroll-snap-align: start; }
+        @media (min-width: 640px)  { .slide { flex: 0 0 calc((100% - 1.25rem) / 2); } }
+        @media (min-width: 1024px) { .slide { flex: 0 0 calc((100% - 2.5rem) / 3); } }
+        @media (min-width: 640px)  { .slide-4 { flex: 0 0 calc((100% - 1.25rem) / 2); } }
+        @media (min-width: 1024px) { .slide-4 { flex: 0 0 calc((100% - 3.75rem) / 4); } }
+        .track.dragging { scroll-snap-type: none; scroll-behavior: auto; cursor: grabbing; }
+
+        .nav-btn {
+            width: 46px; height: 46px; border-radius: 9999px;
+            background: #fff; color: #1f2937;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 18px rgba(31,41,55,.18);
+            border: 1px solid #e5e7eb; transition: all .2s;
+        }
+        .nav-btn:hover:not(:disabled) { background: #047857; color: #fff; border-color: #047857; transform: scale(1.06); }
+        .nav-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+        .dot { width: 8px; height: 8px; border-radius: 9999px; background: #1f2937; opacity: .25; transition: all .25s; }
+        .dot.active { width: 26px; background: #047857; opacity: 1; }
+
+        .card-lift { transition: transform .3s, box-shadow .3s; }
+        .card-lift:hover { transform: translateY(-4px); box-shadow: 0 18px 36px rgba(31,41,55,.18); }
+
+        .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; }
+        .reveal.show { opacity: 1; transform: none; }
+
+        .bg-theme { background-image: linear-gradient(to bottom right, #64748b, #cbd5e1, #64748b); }
     </style>
 </head>
-<body class="bg-slate-500">
+<body class="bg-slate-500 text-dark antialiased">
+
+    <!-- Icon sprites -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <symbol id="i-phone" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></symbol>
+        <symbol id="i-line" viewBox="0 0 24 24"><path fill="currentColor" d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.349 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></symbol>
+        <symbol id="i-fb" viewBox="0 0 24 24"><path fill="currentColor" d="M16.6719 15.5625L17.2031 12.0729H13.875V9.8125C13.875 8.85938 14.3438 7.93125 15.8306 7.93125H17.3438V4.95C17.3438 4.95 15.971 4.725 14.6576 4.725C11.916 4.725 10.125 6.3875 10.125 9.4125V12.0729H7.07812V15.5625H10.125V24H13.875V15.5625H16.6719Z"/></symbol>
+        <symbol id="i-star" viewBox="0 0 20 20"><path fill="currentColor" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></symbol>
+        <symbol id="i-doc" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z"/></symbol>
+        <symbol id="i-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></symbol>
+        <symbol id="i-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></symbol>
+        <symbol id="i-tag" viewBox="0 0 24 24"><path fill="currentColor" d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/></symbol>
+    </svg>
 
     <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all">
         <div class="max-w-6xl mx-auto px-4 md:px-6">
-            <div class="flex items-center justify-between h-16 md:h-18">
-                <!-- Logo + Shop Name (Always Visible) -->
+            <div class="flex items-center justify-between h-16">
                 <a href="#" class="flex items-center gap-2 md:gap-3">
                     <img src="img/Screenshot 2026-03-13 105549 (1).jpg" alt="Lampang Rental Car" class="h-9 w-9 md:h-10 md:w-10 rounded-lg object-cover">
                     <div>
@@ -50,32 +103,24 @@
                     </div>
                 </a>
 
-                <!-- Desktop Nav -->
                 <nav class="hidden md:flex items-center gap-8">
-                    <a href="#cars" class="text-muted hover:text-dark transition-colors text-sm font-medium">รถยนต์</a>
-                    <a href="#motorbikes" class="text-muted hover:text-dark transition-colors text-sm font-medium">มอเตอร์ไซค์</a>
-                    <a href="#conditions" class="text-muted hover:text-dark transition-colors text-sm font-medium">เงื่อนไข</a>
-                    <a href="#testimonials" class="text-muted hover:text-dark transition-colors text-sm font-medium">รีวิว</a>
-                    <a href="#contact" class="text-muted hover:text-dark transition-colors text-sm font-medium">ติดต่อ</a>
+                    <a href="#cars" class="nav-link text-muted hover:text-accent transition-colors text-sm font-medium">รถยนต์</a>
+                    <a href="#motorbikes" class="nav-link text-muted hover:text-accent transition-colors text-sm font-medium">มอเตอร์ไซค์</a>
+                    <a href="#conditions" class="nav-link text-muted hover:text-accent transition-colors text-sm font-medium">เงื่อนไข</a>
+                    <a href="#testimonials" class="nav-link text-muted hover:text-accent transition-colors text-sm font-medium">รีวิว</a>
+                    <a href="#contact" class="nav-link text-muted hover:text-accent transition-colors text-sm font-medium">ติดต่อ</a>
                 </nav>
 
-                <!-- CTA Buttons -->
                 <div class="flex items-center gap-2">
-                    <!-- Mobile Phone Number -->
                     <a href="tel:0631925541" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-full">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                        </svg>
+                        <svg class="w-3.5 h-3.5"><use href="#i-phone"/></svg>
                         063-192-5541
                     </a>
-                    <!-- Desktop Phone Button -->
-                    <a href="tel:0631925541" class="hidden md:inline-flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-medium rounded-full hover:bg-accent/90 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                        </svg>
+                    <a href="tel:0631925541" class="hidden md:inline-flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-medium rounded-full hover:bg-accent-light transition-colors shadow-sm">
+                        <svg class="w-4 h-4"><use href="#i-phone"/></svg>
                         063-192-5541
                     </a>
-                    <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg hover:bg-light">
+                    <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg hover:bg-light" aria-label="เมนู">
                         <svg class="w-6 h-6 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
@@ -83,18 +128,15 @@
                 </div>
             </div>
 
-            <!-- Mobile Menu -->
             <nav id="mobileMenu" class="hidden md:hidden pb-4 border-t border-gray-100">
-                <div class="flex flex-col gap-2 pt-4">
+                <div class="flex flex-col gap-1 pt-3">
                     <a href="#cars" class="px-4 py-3 text-dark hover:bg-light rounded-lg transition-colors text-base">รถยนต์</a>
                     <a href="#motorbikes" class="px-4 py-3 text-dark hover:bg-light rounded-lg transition-colors text-base">มอเตอร์ไซค์</a>
                     <a href="#conditions" class="px-4 py-3 text-dark hover:bg-light rounded-lg transition-colors text-base">เงื่อนไข</a>
                     <a href="#testimonials" class="px-4 py-3 text-dark hover:bg-light rounded-lg transition-colors text-base">รีวิวลูกค้า</a>
                     <a href="#contact" class="px-4 py-3 text-dark hover:bg-light rounded-lg transition-colors text-base">ติดต่อ</a>
                     <a href="tel:0631925541" class="mx-4 mt-2 inline-flex items-center justify-center gap-2 px-4 py-3 bg-accent text-white font-medium rounded-full text-base">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                        </svg>
+                        <svg class="w-5 h-5"><use href="#i-phone"/></svg>
                         โทร 063-192-5541
                     </a>
                 </div>
@@ -102,154 +144,118 @@
         </div>
     </header>
 
-    <!-- Hero Section - Premium Gray Theme -->
-    <section class="pt-24 pb-16 md:pt-32 md:pb-24 bg-gradient-to-br from-slate-500 via-slate-300 to-slate-500">
+    <!-- Hero -->
+    <section class="pt-24 pb-14 md:pt-32 md:pb-20 bg-theme">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
-            <div class="grid lg:grid-cols-2 gap-8 items-center">
+            <div class="grid lg:grid-cols-2 gap-10 items-center">
                 <div class="text-center lg:text-left">
-                    <div class="inline-flex items-center gap-2 bg-accent/10 text-accent px-4 py-2 rounded-full mb-6">
+                    <div class="inline-flex items-center gap-2 bg-white/70 text-accent px-4 py-2 rounded-full mb-6 shadow-sm">
                         <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
                         <span class="text-sm font-medium">ฟรี! รับส่งสนามบิน-สถานีรถไฟและสถานีขนส่ง</span>
                     </div>
-                    <h1 class="text-3xl md:text-5xl font-bold text-dark leading-tight mb-5">
+                    <h1 class="text-3xl md:text-5xl font-bold text-dark leading-tight mb-3">
                         รถเช่าลำปาง<br>
                         <span class="text-accent">ราคาเริ่มต้น 300 บาท</span>
                     </h1>
-                    <h1 class="text-2xl font-bold text-dark mt-4 mb-2">เงื่อนไขไม่ยุ่งยาก</h1>
-                    <p class="text-dark text-base md:text-lg mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
-                        รถเช่าลำปาง ราคาถูก สภาพใหม่ โทร<a href="tel:0631925541" class="items-center"><b> 063-192-5541</b></a>     
+                    <h2 class="text-xl md:text-2xl font-bold text-dark mb-4">เงื่อนไขไม่ยุ่งยาก</h2>
+                    <p class="text-dark text-base md:text-lg mb-6 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                        รถเช่าลำปาง ราคาถูก สภาพใหม่ โทร<a href="tel:0631925541"><b> 063-192-5541</b></a>
                         ไม่ต้องใช้บัตรเครดิต
                         พร้อมประกันชั้น 1 บริการช่วยเหลือฉุกเฉิน 24ชั่วโมง เริ่มต้น 300 บาท/วัน
                         บริการระดับพรีเมี่ยมสะดวกสบาย พนักงานสุภาพผ่านการอบรมทุกคน ตรงต่อเวลา
                         มีบริการส่งฟรี สถานีขนส่งผู้โดยสารลำปาง สนามบินลำปาง สถานีรถไฟและในตัวเมืองลำปาง
-                        ทางเราเปิดบริการมานานกว่า 10ปี แอดไลน์<a href="https://line.me/ti/p/~aompow" target="_blank" class="text-green-500 font-medium"> @aompow </a>เพื่อสอบถามข้อมูลเพิ่มเติมได้เลยค่ะ
-                      </p>  
-                    <div class="flex flex-wrap gap-x-5 gap-y-3 py-4">
-    
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าลำปาง</span>
-    </a>
+                        ทางเราเปิดบริการมานานกว่า 10ปี แอดไลน์<a href="https://line.me/ti/p/~aompow" target="_blank" class="text-green-600 font-semibold"> @aompow </a>เพื่อสอบถามข้อมูลเพิ่มเติมได้เลยค่ะ
+                    </p>
 
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าในลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">เช่ารถลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าสนามบินลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าราคาถูกลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าในเมืองลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าในสนามบินลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าภายในตัวเมืองลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าดีๆ ลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">ลำปางรถเช่า</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าขับเองลำปาง</span>
-    </a>
-
-    <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
-        <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500" viewBox="0 0 24 24">
-            <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 8.25c-.97 0-1.75-.78-1.75-1.75s.78-1.75 1.75-1.75 1.75.78 1.75 1.75-.78 1.75-1.75 1.75z"/>
-        </svg>
-        <span class="text-sm">รถเช่าสถานีรถไฟลำปาง</span>
-    </a>
-
-</div>
-                    <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                        <a href="tel:0631925541" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-accent text-white font-semibold rounded-full hover:bg-accent/90 transition-all shadow-lg hover:shadow-xl text-base">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                            </svg>
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-7">
+                        <a href="tel:0631925541" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-accent text-white font-semibold rounded-full hover:bg-accent-light transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-base">
+                            <svg class="w-5 h-5"><use href="#i-phone"/></svg>
                             โทรจองเลย
                         </a>
-                        <a href="https://line.me/ti/p/~aompow" target="_blank" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#06C755] text-white font-semibold rounded-full hover:bg-[#06C755]/90 transition-all text-base">
-                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.349 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
-                            </svg>
+                        <a href="https://line.me/ti/p/~aompow" target="_blank" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#06C755] text-white font-semibold rounded-full hover:bg-[#06C755]/90 transition-all shadow-lg hover:-translate-y-0.5 text-base">
+                            <svg class="w-5 h-5"><use href="#i-line"/></svg>
                             แอดไลน์
                         </a>
                     </div>
+
+                    <!-- Keyword links -->
+                    <div class="flex flex-wrap gap-x-5 gap-y-3 py-4 justify-center lg:justify-start">
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าในลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">เช่ารถลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าสนามบินลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าราคาถูกลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าในเมืองลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าในสนามบินลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าภายในตัวเมืองลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าดีๆ ลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">ลำปางรถเช่า</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าขับเองลำปาง</span>
+                        </a>
+                        <a href="tel:0631925541" class="flex items-center space-x-2 text-gray-900 hover:text-white transition group">
+                            <svg class="w-4 h-4 fill-current text-gray-500 group-hover:text-green-500"><use href="#i-tag"/></svg>
+                            <span class="text-sm">รถเช่าสถานีรถไฟลำปาง</span>
+                        </a>
+                    </div>
                 </div>
-                <div class="hidden lg:block">
-                    <img src="img/mitsubishi-pajero (2).jpg" alt="Mitsubishi Pajero" class="w-full rounded-2xl shadow-2xl">
+
+                <div class="hidden lg:block relative">
+                    <div class="absolute -inset-3 bg-white/30 rounded-3xl blur-xl"></div>
+                    <img src="img/mitsubishi-pajero (2).jpg" alt="Mitsubishi Pajero" class="relative w-full rounded-2xl shadow-2xl">
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Quick Stats -->
-    <section class="py-10 bg-white border-b border-gray-100">
-        <div class="max-w-6xl mx-auto px-5 md:px-6">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 text-center">
-                <div class="p-4 md:p-5">
+    <section class="bg-white border-b border-gray-100">
+        <div class="max-w-6xl mx-auto px-5 md:px-6 py-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-6 text-center md:divide-x divide-gray-200">
+                <div class="p-3 md:p-4">
                     <div class="text-2xl md:text-3xl font-bold text-dark">300+</div>
                     <div class="text-sm md:text-base text-muted mt-1">ลูกค้าพึงพอใจ</div>
                 </div>
-                <div class="p-4 md:p-5">
+                <div class="p-3 md:p-4">
                     <div class="text-2xl md:text-3xl font-bold text-dark">10+</div>
                     <div class="text-sm md:text-base text-muted mt-1">รถให้เลือก</div>
                 </div>
-                <div class="p-4 md:p-5">
+                <div class="p-3 md:p-4">
                     <div class="text-2xl md:text-3xl font-bold text-dark">24/7</div>
                     <div class="text-sm md:text-base text-muted mt-1">บริการตลอด</div>
                 </div>
-                <div class="p-4 md:p-5">
+                <div class="p-3 md:p-4">
                     <div class="text-2xl md:text-3xl font-bold text-accent">ฟรี</div>
                     <div class="text-sm md:text-base text-muted mt-1">รับส่งสนามบิน</div>
                 </div>
@@ -257,391 +263,372 @@
         </div>
     </section>
 
-    <!-- Cars Section -->
-    <section id="cars" class="bg-gradient-to-br from-slate-500 via-slate-300 to-slate-500 py-16 md:py-24">
+    <!-- Cars -->
+    <section id="cars" class="bg-theme py-16 md:py-24">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
-            <div class="text-center mb-12">
-                <span class="inline-block px-4 py-1.5 bg-slate-300 text-dark text-sm font-medium rounded-full mb-3">รถยนต์</span>
-                <h2 class="text-2xl md:text-3xl font-bold text-dark">รถยนต์ให้เช่า</h2>
-                <p class="text-dark mt-3 text-base md:text-lg">รถทุกคันมีประกัน สภาพดี พร้อมใช้งาน</p>
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 reveal">
+                <div class="text-center md:text-left">
+                    <span class="inline-block px-4 py-1.5 bg-slate-300 text-dark text-sm font-medium rounded-full mb-3">รถยนต์</span>
+                    <h2 class="text-2xl md:text-3xl font-bold text-dark">รถยนต์ให้เช่า</h2>
+                    <p class="text-dark mt-2 text-base md:text-lg">รถทุกคันมีประกัน สภาพดี พร้อมใช้งาน</p>
+                </div>
+                <div class="hidden md:flex gap-3">
+                    <button class="nav-btn" data-prev aria-label="ก่อนหน้า"><svg class="w-5 h-5"><use href="#i-left"/></svg></button>
+                    <button class="nav-btn" data-next aria-label="ถัดไป"><svg class="w-5 h-5"><use href="#i-right"/></svg></button>
+                </div>
             </div>
 
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Pajero -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/mitsubishi-pajero (2).jpg" alt="รถเช่าลำปาง Mitsubishi Pajero Sport รถครอบครัวยอดนิยม 7 ที่นั่ง" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                        <span class="absolute top-3 left-3 px-3 py-1.5 bg-dark text-white text-xs font-bold rounded-full">ยอดนิยม</span>
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Mitsubishi Pajero</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">7 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ดีเซล</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">1,800</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
+            <div data-slider class="reveal">
+                <div class="track">
+                    <!-- Pajero -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/mitsubishi-pajero (2).jpg" alt="รถเช่าลำปาง Mitsubishi Pajero Sport รถครอบครัวยอดนิยม 7 ที่นั่ง" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                                <span class="absolute top-3 left-3 px-3 py-1.5 bg-dark text-white text-xs font-bold rounded-full">ยอดนิยม</span>
                             </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Mitsubishi Pajero</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">7 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ดีเซล</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">1,800</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </article>
+
+                    <!-- CR-V -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/bright-dark-black-golden-colors-smooth-gradient-solid-background_730620-280231.jpg" alt="เช่ารถ SUV ลำปาง Honda CR-V สำหรับครอบครัว บริการรับส่งสนามบินฟรี" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Honda CR-V</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">7 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">2000 ซีซี</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">1,800</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Vigo -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/toyota-hilux-vigo-01 (1).jpg" alt="รถเช่าลำปาง Toyota Hilux Vigo กระบะยกสูง สภาพดี ราคาถูก" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Toyota Hilux Vigo</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">2400 ซีซี</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">1,500</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Navara -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/nissan-navara-01 (1).jpg" alt="บริการรถเช่าลำปาง Nissan Navara เกียร์ออโต้ ขับเอง ราคาถูก ฟรีรับส่งสนามบิน" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Nissan Navara</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">2400 ซีซี</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">1,500</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Altis -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/toyota-altis (1).jpg" alt="รถเช่าลำปาง Toyota Altis เกียร์ออโต้ ขับง่าย ประหยัดน้ำมัน" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Toyota Altis</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">1800 ซีซี</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">1,100</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Vios -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/toyota-vios-car-2018-toyota-yaris-toyota-land-cruiser-prado-toyota-fe251dbae71e75037df5adb4d8f665d5 (1).jpg" alt="รถเช่าลำปาง Toyota Vios ราคาถูก เช่ารถเก๋งขับเอง ประหยัดน้ำมัน ฟรีรับส่งสนามบินลำปาง" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Toyota Vios</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">เบนซิน</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">1,000</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- City -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/30-304123_honda-png-image-white-honda-city-png (1) (2).jpg" alt="รถเช่าลำปาง Honda City สภาพใหม่ ราคาถูก เช่ารถเก๋งขับเอง ประหยัดน้ำมัน ฟรีรับส่งสนามบินและสถานีรถไฟ" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Honda City</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">1500 ซีซี</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">1,000</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Jazz -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/bright-dark-black-golden-colors-smooth-gradient-solid-background_730620-280231 (1).jpg" alt="รถเช่าลำปาง Honda Jazz ราคาถูก เช่ารถเก๋งขับเอง อเนกประสงค์ ประหยัดน้ำมัน รับส่งฟรีสนามบินลำปาง" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Honda Jazz</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">1500 ซีซี</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">1,000</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Mirage -->
+                    <article class="slide">
+                        <div class="card-lift bg-white rounded-2xl shadow-sm overflow-hidden group border border-gray-100 h-full flex flex-col">
+                            <div class="relative overflow-hidden">
+                                <img src="img/mitsubishi-mirage-01 (1).jpg" alt="รถเช่าลำปาง Mitsubishi Mirage ราคาถูกที่สุด เช่ารถเก๋งประหยัดน้ำมัน ขับเองเริ่มต้น 300 บาท ฟรีรับส่งสนามบินลำปาง" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-500" draggable="false">
+                                <span class="absolute top-3 left-3 px-3 py-1.5 bg-accent text-white text-xs font-bold rounded-full">ราคาประหยัด</span>
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col flex-1">
+                                <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Mitsubishi Mirage</h3>
+                                <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-5">
+                                    <span class="px-2.5 py-1 bg-light rounded">4 ที่นั่ง</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">1200 ซีซี</span>
+                                    <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                                    <div><span class="text-2xl md:text-3xl font-bold text-dark">700</span><span class="text-sm text-muted"> บาท/วัน</span></div>
+                                    <a href="tel:0631925541" class="px-5 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
                 </div>
 
-                <!-- CR-V -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/bright-dark-black-golden-colors-smooth-gradient-solid-background_730620-280231.jpg" alt="เช่ารถ SUV ลำปาง Honda CR-V สำหรับครอบครัว บริการรับส่งสนามบินฟรี" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Honda CR-V</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">7 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">2000 ซีซี</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">1,800</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
+                <div class="flex items-center justify-center gap-4 mt-2">
+                    <button class="nav-btn md:hidden" data-prev aria-label="ก่อนหน้า"><svg class="w-5 h-5"><use href="#i-left"/></svg></button>
+                    <div class="flex items-center gap-2" data-dots></div>
+                    <button class="nav-btn md:hidden" data-next aria-label="ถัดไป"><svg class="w-5 h-5"><use href="#i-right"/></svg></button>
+                </div>
+                <p class="text-center text-dark/70 text-xs mt-3">ปัดซ้าย-ขวา หรือกดลูกศรเพื่อดูรถคันอื่น</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Motorbikes -->
+    <section id="motorbikes" class="bg-theme pb-16 md:pb-24">
+        <div class="max-w-6xl mx-auto px-5 md:px-6">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 reveal">
+                <div class="text-center md:text-left">
+                    <span class="inline-block px-4 py-1.5 bg-slate-300 text-dark text-sm font-medium rounded-full mb-3">มอเตอร์ไซค์</span>
+                    <h2 class="text-2xl md:text-3xl font-bold text-dark">มอเตอร์ไซค์ให้เช่า</h2>
+                    <p class="text-dark mt-2 text-base md:text-lg">รถทุกคันมีประกัน สภาพดี พร้อมใช้งาน</p>
+                </div>
+                <div class="hidden md:flex gap-3">
+                    <button class="nav-btn" data-prev aria-label="ก่อนหน้า"><svg class="w-5 h-5"><use href="#i-left"/></svg></button>
+                    <button class="nav-btn" data-next aria-label="ถัดไป"><svg class="w-5 h-5"><use href="#i-right"/></svg></button>
+                </div>
+            </div>
+
+            <div data-slider class="reveal">
+                <div class="track">
+                    <!-- Click -->
+                    <article class="slide slide-4">
+                        <div class="card-lift bg-light rounded-2xl p-5 md:p-6 text-center group border border-gray-100 h-full flex flex-col">
+                            <div class="bg-white rounded-xl p-3 mb-4">
+                                <img src="img/tn_png (1) (1).jpg" alt="เช่ารถมอเตอร์ไซค์ลำปาง Honda Click ราคาถูก เช่ารถมอเตอร์ไซค์ขับเองในเมืองลำปาง ฟรีหมวกกันน็อค รับส่งฟรีสถานีรถไฟและขนส่ง" class="w-full h-40 object-contain group-hover:scale-105 transition-transform duration-500" draggable="false">
                             </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
+                            <h3 class="font-bold text-dark mb-1 text-base md:text-lg">Honda Click 125i</h3>
+                            <p class="text-sm text-muted mb-3">ออโต้ 125 ซีซี หัวฉีด</p>
+                            <div class="text-2xl font-bold text-accent mb-4 mt-auto">300 <span class="text-sm font-normal text-muted">บาท/วัน</span></div>
+                            <a href="tel:0631925541" class="block w-full py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
                         </div>
-                    </div>
+                    </article>
+
+                    <!-- Scoopy -->
+                    <article class="slide slide-4">
+                        <div class="card-lift bg-light rounded-2xl p-5 md:p-6 text-center group border border-gray-100 h-full flex flex-col">
+                            <div class="bg-white rounded-xl p-3 mb-4">
+                                <img src="img/scoopy-i-tn (1).jpg" alt="เช่ารถมอเตอร์ไซค์ลำปาง Honda Scoopy ราคาถูก เช่ารถป๊อปขับเที่ยวคาเฟ่ลำปาง ฟรีหมวกกันน็อค รับส่งฟรีสนามบินและสถานีรถไฟ" class="w-full h-40 object-contain group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <h3 class="font-bold text-dark mb-1 text-base md:text-lg">Honda SCOOPY i</h3>
+                            <p class="text-sm text-muted mb-3">ออโต้ 108 ซีซี หัวฉีด</p>
+                            <div class="text-2xl font-bold text-accent mb-4 mt-auto">300 <span class="text-sm font-normal text-muted">บาท/วัน</span></div>
+                            <a href="tel:0631925541" class="block w-full py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                        </div>
+                    </article>
+
+                    <!-- Fino -->
+                    <article class="slide slide-4">
+                        <div class="card-lift bg-light rounded-2xl p-5 md:p-6 text-center group border border-gray-100 h-full flex flex-col">
+                            <div class="bg-white rounded-xl p-3 mb-4">
+                                <img src="img/โครงการใหม่ (1)-2.jpg" alt="เช่ารถมอเตอร์ไซค์ลำปาง Yamaha Fino ราคาถูก รถเช่าขับเที่ยวรอบเมืองลำปาง สไตล์คลาสสิก ฟรีหมวกกันน็อค รับส่งฟรีทั่วเมืองลำปาง" class="w-full h-40 object-contain group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <h3 class="font-bold text-dark mb-1 text-base md:text-lg">Yamaha Fino</h3>
+                            <p class="text-sm text-muted mb-3">ออโต้ 125 ซีซี หัวฉีด</p>
+                            <div class="text-2xl font-bold text-accent mb-4 mt-auto">300 <span class="text-sm font-normal text-muted">บาท/วัน</span></div>
+                            <a href="tel:0631925541" class="block w-full py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                        </div>
+                    </article>
+
+                    <!-- Mio -->
+                    <article class="slide slide-4">
+                        <div class="card-lift bg-light rounded-2xl p-5 md:p-6 text-center group border border-gray-100 h-full flex flex-col">
+                            <div class="bg-white rounded-xl p-3 mb-4">
+                                <img src="img/โครงการใหม่.jpg" alt="เช่ารถมอเตอร์ไซค์ลำปาง Yamaha Mio ราคาถูกที่สุด รถเช่าขับคล่องตัวประหยัดน้ำมัน ฟรีหมวกกันน็อค รับส่งฟรีสถานีรถไฟลำปาง" class="w-full h-40 object-contain group-hover:scale-105 transition-transform duration-500" draggable="false">
+                            </div>
+                            <h3 class="font-bold text-dark mb-1 text-base md:text-lg">Yamaha Mio</h3>
+                            <p class="text-sm text-muted mb-3">ออโต้ 125 ซีซี หัวฉีด</p>
+                            <div class="text-2xl font-bold text-accent mb-4 mt-auto">300 <span class="text-sm font-normal text-muted">บาท/วัน</span></div>
+                            <a href="tel:0631925541" class="block w-full py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-accent transition-colors">จองเลย</a>
+                        </div>
+                    </article>
                 </div>
 
-                <!-- Vigo -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/toyota-hilux-vigo-01 (1).jpg" alt="รถเช่าลำปาง Toyota Hilux Vigo กระบะยกสูง สภาพดี ราคาถูก" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Toyota Hilux Vigo</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">2400 ซีซี</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">1,500</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
-                            </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Navara -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/nissan-navara-01 (1).jpg" alt="บริการรถเช่าลำปาง Nissan Navara เกียร์ออโต้ ขับเอง ราคาถูก ฟรีรับส่งสนามบิน" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Nissan Navara</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">2400 ซีซี</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">1,500</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
-                            </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Altis -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/toyota-altis (1).jpg" alt="รถเช่าลำปาง Toyota Altis เกียร์ออโต้ ขับง่าย ประหยัดน้ำมัน" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Toyota Altis</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">1800 ซีซี</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">1,100</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
-                            </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Vios -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/toyota-vios-car-2018-toyota-yaris-toyota-land-cruiser-prado-toyota-fe251dbae71e75037df5adb4d8f665d5 (1).jpg" alt="รถเช่าลำปาง Toyota Vios ราคาถูก เช่ารถเก๋งขับเอง ประหยัดน้ำมัน ฟรีรับส่งสนามบินลำปาง" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Toyota Vios</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">เบนซิน</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">1,000</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
-                            </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- City -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/30-304123_honda-png-image-white-honda-city-png (1) (2).jpg" alt="รถเช่าลำปาง Honda City สภาพใหม่ ราคาถูก เช่ารถเก๋งขับเอง ประหยัดน้ำมัน ฟรีรับส่งสนามบินและสถานีรถไฟ" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Honda City</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">1500 ซีซี</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">1,000</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
-                            </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Jazz -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/bright-dark-black-golden-colors-smooth-gradient-solid-background_730620-280231 (1).jpg" alt="รถเช่าลำปาง Honda Jazz ราคาถูก เช่ารถเก๋งขับเอง อเนกประสงค์ ประหยัดน้ำมัน รับส่งฟรีสนามบินลำปาง" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Honda Jazz</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">5 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">1500 ซีซี</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">1,000</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
-                            </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mirage -->
-                <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100">
-                    <div class="relative">
-                        <img src="img/mitsubishi-mirage-01 (1).jpg" alt="รถเช่าลำปาง Mitsubishi Mirage ราคาถูกที่สุด เช่ารถเก๋งประหยัดน้ำมัน ขับเองเริ่มต้น 300 บาท ฟรีรับส่งสนามบินลำปาง" class="w-full h-48 md:h-52 object-cover group-hover:scale-105 transition-transform duration-300">
-                        <span class="absolute top-3 left-3 px-3 py-1.5 bg-accent text-white text-xs font-bold rounded-full">ราคาประหยัด</span>
-                    </div>
-                    <div class="p-5 md:p-6">
-                        <h3 class="text-lg md:text-xl font-bold text-dark mb-3">Mitsubishi Mirage</h3>
-                        <div class="flex flex-wrap gap-2 text-xs md:text-sm text-muted mb-4">
-                            <span class="px-2.5 py-1 bg-light rounded">4 ที่นั่ง</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ออโต้</span>
-                            <span class="px-2.5 py-1 bg-light rounded">1200 ซีซี</span>
-                            <span class="px-2.5 py-1 bg-light rounded">ประกัน</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-2xl md:text-3xl font-bold text-dark">700</span>
-                                <span class="text-sm text-muted"> บาท/วัน</span>
-                            </div>
-                            <a href="tel:0631925541" class="px-4 py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">
-                                จองเลย
-                            </a>
-                        </div>
-                    </div>
+                <div class="flex items-center justify-center gap-4 mt-2">
+                    <button class="nav-btn md:hidden" data-prev aria-label="ก่อนหน้า"><svg class="w-5 h-5"><use href="#i-left"/></svg></button>
+                    <div class="flex items-center gap-2" data-dots></div>
+                    <button class="nav-btn md:hidden" data-next aria-label="ถัดไป"><svg class="w-5 h-5"><use href="#i-right"/></svg></button>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Motorbikes Section -->
-    <section id="motorbikes" class="bg-gradient-to-br from-slate-500 via-slate-300 to-slate-500 py-16 md:py-24">
+    <!-- Conditions -->
+    <section id="conditions" class="bg-gradient-to-br from-slate-400 via-slate-300 to-slate-400 py-16 md:py-24">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
-            <div class="text-center mb-12">
-                <span class="inline-block px-4 py-1.5 bg-slate-300 text-dark text-sm font-medium rounded-full mb-3">มอเตอร์ไซค์</span>
-                <h2 class="text-2xl md:text-3xl font-bold text-dark">มอเตอร์ไซค์ให้เช่า</h2>
-                <p class="text-dark mt-3 text-base md:text-lg">รถทุกคันมีประกัน สภาพดี พร้อมใช้งาน</p>
-            </div>
-
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Click -->
-                <div class="bg-light rounded-2xl p-5 md:p-6 hover:shadow-lg transition-all text-center group border border-gray-100">
-                    <img src="img/tn_png (1) (1).jpg" alt="เช่ารถมอเตอร์ไซค์ลำปาง Honda Click ราคาถูก เช่ารถมอเตอร์ไซค์ขับเองในเมืองลำปาง ฟรีหมวกกันน็อค รับส่งฟรีสถานีรถไฟและขนส่ง" class="w-full h-48 md:h-36 object-contain mb-4 group-hover:scale-105 transition-transform">
-                    <h3 class="font-bold text-dark mb-1 text-base md:text-lg">Honda Click 125i</h3>
-                    <p class="text-sm text-muted mb-3">ออโต้ 125 ซีซี หัวฉีด</p>
-                    <div class="text-2xl font-bold text-accent mb-4">300 <span class="text-sm font-normal text-muted">บาท/วัน</span></div>
-                    <a href="tel:0631925541" class="block w-full py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">จองเลย</a>
-                </div>
-
-                <!-- Scoopy -->
-                <div class="bg-light rounded-2xl p-5 md:p-6 hover:shadow-lg transition-all text-center group border border-gray-100">
-                    <img src="img/scoopy-i-tn (1).jpg" alt="เช่ารถมอเตอร์ไซค์ลำปาง Honda Scoopy ราคาถูก เช่ารถป๊อปขับเที่ยวคาเฟ่ลำปาง ฟรีหมวกกันน็อค รับส่งฟรีสนามบินและสถานีรถไฟ" class="w-full h-48 md:h-36 object-contain mb-4 group-hover:scale-105 transition-transform">
-                    <h3 class="font-bold text-dark mb-1 text-base md:text-lg">Honda SCOOPY i</h3>
-                    <p class="text-sm text-muted mb-3">ออโต้ 108 ซีซี หัวฉีด</p>
-                    <div class="text-2xl font-bold text-accent mb-4">300 <span class="text-sm font-normal text-muted">บาท/วัน</span></div>
-                    <a href="tel:0631925541" class="block w-full py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">จองเลย</a>
-                </div>
-
-                <!-- Fino -->
-                <div class="bg-light rounded-2xl p-5 md:p-6 hover:shadow-lg transition-all text-center group border border-gray-100">
-                    <img src="img/โครงการใหม่ (1)-2.jpg" alt="เช่ารถมอเตอร์ไซค์ลำปาง Yamaha Fino ราคาถูก รถเช่าขับเที่ยวรอบเมืองลำปาง สไตล์คลาสสิก ฟรีหมวกกันน็อค รับส่งฟรีทั่วเมืองลำปาง" class="w-full h-48 md:h-36 object-contain mb-4 group-hover:scale-105 transition-transform">
-                    <h3 class="font-bold text-dark mb-1 text-base md:text-lg">Yamaha Fino</h3>
-                    <p class="text-sm text-muted mb-3">ออโต้ 125 ซีซี หัวฉีด</p>
-                    <div class="text-2xl font-bold text-accent mb-4">300 <span class="text-sm font-normal text-muted">บาท/วัน</span></div>
-                    <a href="tel:0631925541" class="block w-full py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">จองเลย</a>
-                </div>
-
-                <!-- Mio -->
-                <div class="bg-light rounded-2xl p-5 md:p-6 hover:shadow-lg transition-all text-center group border border-gray-100">
-                    <img src="img/โครงการใหม่.jpg" alt="เช่ารถมอเตอร์ไซค์ลำปาง Yamaha Mio ราคาถูกที่สุด รถเช่าขับคล่องตัวประหยัดน้ำมัน ฟรีหมวกกันน็อค รับส่งฟรีสถานีรถไฟลำปาง" class="w-full h-48 md:h-36 object-contain mb-4 group-hover:scale-105 transition-transform">
-                    <h3 class="font-bold text-dark mb-1 text-base md:text-lg">Yamaha Mio</h3>
-                    <p class="text-sm text-muted mb-3">ออโต้ 125 ซีซี หัวฉีด</p>
-                    <div class="text-2xl font-bold text-accent mb-4">300 <span class="text-sm font-normal text-muted">บาท/วัน</span></div>
-                    <a href="tel:0631925541" class="block w-full py-2.5 bg-dark text-white text-sm font-medium rounded-full hover:bg-primary transition-colors">จองเลย</a>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-
-    <!-- Conditions Section -->
-    <section id="conditions" class="bg-gradient-to-br from-slate-ึ00 via-slate-300 py-16 md:py-24">
-        <div class="max-w-6xl mx-auto px-5 md:px-6">
-            <div class="text-center mb-12">
+            <div class="text-center mb-12 reveal">
                 <span class="inline-block px-4 py-1.5 bg-slate-400 text-dark text-sm font-medium rounded-full mb-3">เงื่อนไข</span>
                 <h2 class="text-2xl md:text-3xl font-bold text-dark">เงื่อนไขและเอกสารการเช่า</h2>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-6 md:gap-8">
-                <!-- เงื่อนไขการเช่า -->
+            <div class="grid md:grid-cols-2 gap-6 md:gap-8 reveal">
                 <div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
                     <h3 class="text-lg md:text-xl font-bold text-dark mb-5 flex items-center gap-2">
-                        <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
+                        <svg class="w-6 h-6 text-accent"><use href="#i-check"/></svg>
                         เงื่อนไขการเช่า
                     </h3>
                     <ul class="space-y-4 text-dark/80">
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-base leading-relaxed">เช่ารถเป็นรายวัน ครบกำหนด 1 วัน ใน 24 ชั่วโมง</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-base leading-relaxed">ส่งรถคืนเกินเวลา คิดเพิ่มชั่วโมงละ 200 บาท หากเกิน 4 ชั่วโมง คิดเพิ่มเป็น 1 วัน</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-base leading-relaxed">ผู้ขับขี่ต้องมีใบอนุญาตขับขี่</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-base leading-relaxed">ผู้เช่ารถต้องมีอายุ 20 ปีขึ้นไป</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-accent rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-accent font-medium text-base leading-relaxed">เช่าติดต่อหลายวัน ค่าเช่าต่อรองกันได้!</span>
-                        </li>
+                        <li class="flex items-start gap-3"><span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span><span class="text-base leading-relaxed">เช่ารถเป็นรายวัน ครบกำหนด 1 วัน ใน 24 ชั่วโมง</span></li>
+                        <li class="flex items-start gap-3"><span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span><span class="text-base leading-relaxed">ส่งรถคืนเกินเวลา คิดเพิ่มชั่วโมงละ 200 บาท หากเกิน 4 ชั่วโมง คิดเพิ่มเป็น 1 วัน</span></li>
+                        <li class="flex items-start gap-3"><span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span><span class="text-base leading-relaxed">ผู้ขับขี่ต้องมีใบอนุญาตขับขี่</span></li>
+                        <li class="flex items-start gap-3"><span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span><span class="text-base leading-relaxed">ผู้เช่ารถต้องมีอายุ 20 ปีขึ้นไป</span></li>
+                        <li class="flex items-start gap-3 bg-accent/10 rounded-lg p-3 -mx-1"><span class="w-2 h-2 bg-accent rounded-full mt-2.5 flex-shrink-0"></span><span class="text-accent font-medium text-base leading-relaxed">เช่าติดต่อหลายวัน ค่าเช่าต่อรองกันได้!</span></li>
                     </ul>
                 </div>
 
-                <!-- เอกสารที่ต้องใช้ -->
                 <div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
                     <h3 class="text-lg md:text-xl font-bold text-dark mb-5 flex items-center gap-2">
-                        <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
+                        <svg class="w-6 h-6 text-accent"><use href="#i-doc"/></svg>
                         เอกสารที่ต้องใช้
                     </h3>
                     <ul class="space-y-4 text-dark/80">
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-base leading-relaxed">บัตรประจำตัวประชาชน</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-base leading-relaxed">ใบขับขี่รถยนต์หรือรถจักรยานยนต์</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-base leading-relaxed"><strong>เงินประกัน 2,000 บาท</strong> (รถยนต์)</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-base leading-relaxed"><strong>เงินประกัน 1,500 บาท</strong> (มอเตอร์ไซค์)</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="w-2 h-2 bg-accent rounded-full mt-2.5 flex-shrink-0"></span>
-                            <span class="text-accent font-medium text-base leading-relaxed">คืนเงินประกันเมื่อส่งรถคืนเรียบร้อย</span>
-                        </li>
+                        <li class="flex items-start gap-3"><span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span><span class="text-base leading-relaxed">บัตรประจำตัวประชาชน</span></li>
+                        <li class="flex items-start gap-3"><span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span><span class="text-base leading-relaxed">ใบขับขี่รถยนต์หรือรถจักรยานยนต์</span></li>
+                        <li class="flex items-start gap-3"><span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span><span class="text-base leading-relaxed"><strong>เงินประกัน 2,000 บาท</strong> (รถยนต์)</span></li>
+                        <li class="flex items-start gap-3"><span class="w-2 h-2 bg-muted rounded-full mt-2.5 flex-shrink-0"></span><span class="text-base leading-relaxed"><strong>เงินประกัน 1,500 บาท</strong> (มอเตอร์ไซค์)</span></li>
+                        <li class="flex items-start gap-3 bg-accent/10 rounded-lg p-3 -mx-1"><span class="w-2 h-2 bg-accent rounded-full mt-2.5 flex-shrink-0"></span><span class="text-accent font-medium text-base leading-relaxed">คืนเงินประกันเมื่อส่งรถคืนเรียบร้อย</span></li>
                     </ul>
                 </div>
             </div>
 
-            <!-- Pricing Table -->
-            <div class="mt-12 bg-dark rounded-2xl p-6 md:p-10 text-white">
+            <!-- Pricing table -->
+            <div class="mt-12 bg-dark rounded-2xl p-6 md:p-10 text-white shadow-xl reveal">
                 <h3 class="text-xl md:text-2xl font-bold text-center mb-8">ตารางราคาเช่ารถ</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-center">
-                    <div>
-                        <div class="text-3xl md:text-4xl font-bold text-accent">1,800</div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 text-center md:divide-x divide-white/10">
+                    <div class="md:px-4">
+                        <div class="text-3xl md:text-4xl font-bold text-accent-light">1,800</div>
                         <div class="text-sm md:text-base text-white/70 mt-1">บาท/วัน</div>
                         <div class="font-medium mt-2 text-sm md:text-base">Pajero / CR-V</div>
                     </div>
-                    <div>
-                        <div class="text-3xl md:text-4xl font-bold text-accent">1,000</div>
+                    <div class="md:px-4">
+                        <div class="text-3xl md:text-4xl font-bold text-accent-light">1,000</div>
                         <div class="text-sm md:text-base text-white/70 mt-1">บาท/วัน</div>
                         <div class="font-medium mt-2 text-sm md:text-base">Vios / City / Jazz</div>
                     </div>
-                    <div>
-                        <div class="text-3xl md:text-4xl font-bold text-accent">700</div>
+                    <div class="md:px-4">
+                        <div class="text-3xl md:text-4xl font-bold text-accent-light">700</div>
                         <div class="text-sm md:text-base text-white/70 mt-1">บาท/วัน</div>
                         <div class="font-medium mt-2 text-sm md:text-base">Mirage</div>
                     </div>
-                    <div>
-                        <div class="text-3xl md:text-4xl font-bold text-accent">300</div>
+                    <div class="md:px-4">
+                        <div class="text-3xl md:text-4xl font-bold text-accent-light">300</div>
                         <div class="text-sm md:text-base text-white/70 mt-1">บาท/วัน</div>
                         <div class="font-medium mt-2 text-sm md:text-base">มอเตอร์ไซค์</div>
                     </div>
@@ -650,120 +637,115 @@
         </div>
     </section>
 
-    <!-- Testimonials Section -->
-    <section id="testimonials" class="bg-gradient-to-br from-slate-500 via-slate-300 to-slate-500 py-16 md:py-24">
+    <!-- Testimonials -->
+    <section id="testimonials" class="bg-theme py-16 md:py-24">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
-            <div class="text-center mb-12">
-                <span class="inline-block px-4 py-1.5 bg-accent/10 text-accent text-sm font-medium rounded-full mb-3">รีวิวลูกค้า</span>
-                <h2 class="text-2xl md:text-3xl font-bold text-dark">ลูกค้าที่ไว้วางใจเรา</h2>
-                <p class="text-muted mt-3 text-base md:text-lg">ขอบคุณลูกค้าทุกท่านที่ใช้บริการ</p>
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8 reveal">
+                <div class="text-center md:text-left">
+                    <span class="inline-block px-4 py-1.5 bg-accent/10 text-accent text-sm font-medium rounded-full mb-3">รีวิวลูกค้า</span>
+                    <h2 class="text-2xl md:text-3xl font-bold text-dark">ลูกค้าที่ไว้วางใจเรา</h2>
+                    <p class="text-dark/80 mt-2 text-base md:text-lg">ขอบคุณลูกค้าทุกท่านที่ใช้บริการ</p>
+                </div>
+                <div class="hidden md:flex gap-3">
+                    <button class="nav-btn" data-prev aria-label="ก่อนหน้า"><svg class="w-5 h-5"><use href="#i-left"/></svg></button>
+                    <button class="nav-btn" data-next aria-label="ถัดไป"><svg class="w-5 h-5"><use href="#i-right"/></svg></button>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Review 1 -->
-                <div class="bg-light rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg transition-all">
-                    <img src="img/317951 (1).jpg" alt="รีวิวลูกค้า 1" class="w-full h-64 md:h-72 object-cover">
-                    <div class="p-5">
-                        <div class="flex items-center gap-1 mb-2">
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <div data-slider data-autoplay="5000" class="reveal">
+                <div class="track">
+                    <!-- Review 1 -->
+                    <article class="slide">
+                        <div class="card-lift bg-light rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-full">
+                            <img src="img/317951 (1).jpg" alt="รีวิวลูกค้า 1" class="w-full h-64 md:h-72 object-cover" draggable="false">
+                            <div class="p-5">
+                                <div class="flex items-center gap-1 mb-2 text-yellow-500">
+                                    <svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg>
+                                </div>
+                                <p class="text-muted text-sm">บริการดี รถสะอาด แนะนำเลย</p>
+                            </div>
                         </div>
-                        <p class="text-muted text-sm">บริการดี รถสะอาด แนะนำเลย</p>
-                    </div>
+                    </article>
+
+                    <!-- Review 2 -->
+                    <article class="slide">
+                        <div class="card-lift bg-light rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-full">
+                            <img src="img/317955 (1).jpg" alt="รีวิวลูกค้า 2" class="w-full h-64 md:h-72 object-cover" draggable="false">
+                            <div class="p-5">
+                                <div class="flex items-center gap-1 mb-2 text-yellow-500">
+                                    <svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg>
+                                </div>
+                                <p class="text-muted text-sm">พี่อ้อมใจดีมาก ราคาดี</p>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Review 3 -->
+                    <article class="slide">
+                        <div class="card-lift bg-light rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-full">
+                            <img src="img/317937 (1).jpg" alt="รีวิวลูกค้า 3" class="w-full h-64 md:h-72 object-cover" draggable="false">
+                            <div class="p-5">
+                                <div class="flex items-center gap-1 mb-2 text-yellow-500">
+                                    <svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg>
+                                </div>
+                                <p class="text-muted text-sm">รถสภาพดีมาก ขับสบาย</p>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Review 4 -->
+                    <article class="slide">
+                        <div class="card-lift bg-light rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-full">
+                            <img src="img/317964 (1).jpg" alt="รีวิวลูกค้า 4" class="w-full h-64 md:h-72 object-cover" draggable="false">
+                            <div class="p-5">
+                                <div class="flex items-center gap-1 mb-2 text-yellow-500">
+                                    <svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg><svg class="w-5 h-5"><use href="#i-star"/></svg>
+                                </div>
+                                <p class="text-muted text-sm">รถไม่มีปัญหา สะอาด ไว้กลับมาใช้บริการใหม่</p>
+                            </div>
+                        </div>
+                    </article>
                 </div>
 
-                <!-- Review 2 -->
-                <div class="bg-light rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg transition-all">
-                    <img src="img/317955 (1).jpg" alt="รีวิวลูกค้า 2" class="w-full h-64 md:h-72 object-cover">
-                    <div class="p-5">
-                        <div class="flex items-center gap-1 mb-2">
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        </div>
-                        <p class="text-muted text-sm">พี่อ้อมใจดีมาก ราคาดี</p>
-                    </div>
-                </div>
-
-                <!-- Review 3 -->
-                <div class="bg-light rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg transition-all">
-                    <img src="img/317937 (1).jpg" alt="รีวิวลูกค้า 3" class="w-full h-64 md:h-72 object-cover">
-                    <div class="p-5">
-                        <div class="flex items-center gap-1 mb-2">
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        </div>
-                        <p class="text-muted text-sm">รถสภาพดีมาก ขับสบาย</p>
-                    </div>
-                </div>
-                <!-- review 4 -->
-                <div class="bg-light rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg transition-all">
-                    <img src="img/317964 (1).jpg" alt="รีวิวลูกค้า 4" class="w-full h-64 md:h-72 object-cover">
-                    <div class="p-5">
-                        <div class="flex items-center gap-1 mb-2">
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                            <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                        </div>
-                        <p class="text-muted text-sm">รถไม่มีปัญหา สะอาด ไว้กลับมาใช้บริการใหม่</p>
-                    </div>
+                <div class="flex items-center justify-center gap-4 mt-2">
+                    <button class="nav-btn md:hidden" data-prev aria-label="ก่อนหน้า"><svg class="w-5 h-5"><use href="#i-left"/></svg></button>
+                    <div class="flex items-center gap-2" data-dots></div>
+                    <button class="nav-btn md:hidden" data-next aria-label="ถัดไป"><svg class="w-5 h-5"><use href="#i-right"/></svg></button>
                 </div>
             </div>
         </div>
-
-            
-        
     </section>
 
-    <!-- Contact Section -->
+    <!-- Contact -->
     <section id="contact" class="py-16 md:py-20 bg-slate-300">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
-            <div class="text-center mb-12">
+            <div class="text-center mb-12 reveal">
                 <span class="inline-block px-4 py-1.5 bg-accent/10 text-accent text-sm font-medium rounded-full mb-3">ติดต่อเรา</span>
                 <h2 class="text-2xl md:text-3xl font-bold text-dark">ช่องทางการติดต่อ</h2>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                <!-- Phone -->
-                <a href="tel:0631925541" class="bg-white rounded-2xl p-6 md:p-8 text-center hover:shadow-lg transition-all group border border-gray-100">
-                    <div class="w-14 h-14 md:w-16 md:h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
-                        <svg class="w-7 h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                        </svg>
+            <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto reveal">
+                <a href="tel:0631925541" class="card-lift bg-white rounded-2xl p-6 md:p-8 text-center group border border-gray-100">
+                    <div class="w-14 h-14 md:w-16 md:h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform text-white">
+                        <svg class="w-7 h-7 md:w-8 md:h-8"><use href="#i-phone"/></svg>
                     </div>
                     <h3 class="font-bold text-dark mb-2 text-base md:text-lg">โทรศัพท์</h3>
                     <p class="text-accent font-semibold text-lg md:text-xl">063-192-5541</p>
                     <p class="text-muted text-sm md:text-base mt-1">(อ้อม)</p>
                 </a>
 
-                <!-- Line -->
-                <a href="https://line.me/ti/p/~aompow" target="_blank" class="bg-white rounded-2xl p-6 md:p-8 text-center hover:shadow-lg transition-all group border border-gray-100">
-                    <div class="w-14 h-14 md:w-16 md:h-16 bg-[#06C755] rounded-full flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
-                        <svg class="w-8 h-8 md:w-9 md:h-9 text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.349 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
-                        </svg>
+                <a href="https://line.me/ti/p/~aompow" target="_blank" class="card-lift bg-white rounded-2xl p-6 md:p-8 text-center group border border-gray-100">
+                    <div class="w-14 h-14 md:w-16 md:h-16 bg-[#06C755] rounded-full flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform text-white">
+                        <svg class="w-8 h-8 md:w-9 md:h-9"><use href="#i-line"/></svg>
                     </div>
                     <h3 class="font-bold text-dark mb-2 text-base md:text-lg">LINE ID</h3>
                     <p class="text-[#06C755] font-semibold text-lg md:text-xl">aompow</p>
                     <p class="text-muted text-sm md:text-base mt-1">คลิกเพื่อแอดไลน์</p>
                 </a>
 
-                <!-- Facebook -->
-                <a href="https://www.facebook.com/lampangrentalcar" target="_blank" class="bg-white rounded-2xl p-6 md:p-8 text-center hover:shadow-lg transition-all group border border-gray-100">
-                    <div class="w-14 h-14 md:w-16 md:h-16 bg-[#0084FF] rounded-full flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
-                        <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16.6719 15.5625L17.2031 12.0729H13.875V9.8125C13.875 8.85938 14.3438 7.93125 15.8306 7.93125H17.3438V4.95C17.3438 4.95 15.971 4.725 14.6576 4.725C11.916 4.725 10.125 6.3875 10.125 9.4125V12.0729H7.07812V15.5625H10.125V24C10.125 24.001 10.125 24 10.125 24C10.125 24 13.875 24 13.875 24V15.5625H16.6719Z" fill="white"/>
-                        </svg>
+                <a href="https://www.facebook.com/lampangrentalcar" target="_blank" class="card-lift bg-white rounded-2xl p-6 md:p-8 text-center group border border-gray-100">
+                    <div class="w-14 h-14 md:w-16 md:h-16 bg-[#0084FF] rounded-full flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform text-white">
+                        <svg class="w-9 h-9"><use href="#i-fb"/></svg>
                     </div>
                     <h3 class="font-bold text-dark mb-2 text-base md:text-lg">Facebook</h3>
                     <p class="text-[#0084FF] font-semibold text-lg md:text-xl">รถเช่าลำปาง</p>
@@ -771,13 +753,9 @@
                 </a>
             </div>
 
-            <!-- Location -->
-            <div class="mt-10 text-center">
-                <p class="text-muted flex items-center justify-center gap-2 text-base leading-relaxed">
-                    <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" xmlns="https://th.wikipedia.org/wiki/%E0%B9%84%E0%B8%9F%E0%B8%A5%E0%B9%8C:Facebook_Logo_%282019%29.png">
-                        <path d="M24 12.0729C24 5.4049 18.627 0 12 0C5.373 0 0 5.4049 0 12.0729C0 18.0989 4.388 23.094 10.125 24V15.5625H7.07812V12.0729H10.125V9.4125C10.125 6.3875 11.916 4.725 14.6576 4.725C15.971 4.725 17.3438 4.95 17.3438 4.95V7.93125H15.8306C14.3438 7.93125 13.875 8.85938 13.875 9.8125V12.0729H17.2031L16.6719 15.5625H13.875V24C19.612 23.094 24 18.0989 24 12.0729Z" fill="white" fill-opacity="0.1"/>
-                        <path d="M16.6719 15.5625L17.2031 12.0729H13.875V9.8125C13.875 8.85938 14.3438 7.93125 15.8306 7.93125H17.3438V4.95C17.3438 4.95 15.971 4.725 14.6576 4.725C11.916 4.725 10.125 6.3875 10.125 9.4125V12.0729H7.07812V15.5625H10.125V24C10.125 24.001 10.125 24 10.125 24C10.125 24 13.875 24 13.875 24V15.5625H16.6719Z" fill="currentColor"/>
-                    </svg>
+            <div class="mt-10 text-center reveal">
+                <p class="text-muted inline-flex items-center justify-center gap-2 text-base leading-relaxed bg-white/60 px-5 py-3 rounded-full">
+                    <svg class="w-6 h-6 text-accent flex-shrink-0"><use href="#i-pin"/></svg>
                     จังหวัดลำปาง | ฟรี! รับส่งสนามบินลำปาง สถานีรถไฟลำปาง และทั่วเขตตัวเมือง
                 </p>
             </div>
@@ -787,7 +765,7 @@
     <!-- Footer -->
     <footer class="bg-dark text-white py-12 md:py-14">
         <div class="max-w-6xl mx-auto px-5 md:px-6 text-center">
-            <img src="img/Screenshot 2026-03-13 105549 (1).jpg" alt="Lampang Rental Car" class="h-100 w-50 rounded-lg mx-auto mb-5 object-cover">
+            <img src="img/Screenshot 2026-03-13 105549 (1).jpg" alt="Lampang Rental Car" class="h-24 w-24 rounded-xl mx-auto mb-5 object-cover shadow-lg">
             <h3 class="font-bold text-xl mb-2">รถเช่าลำปาง</h3>
             <p class="text-white/60 text-base mb-8">worldcarrent - บริการเช่ารถยนต์และมอเตอร์ไซค์ในลำปาง</p>
             <nav class="flex flex-wrap justify-center gap-6 md:gap-8 text-sm md:text-base mb-8">
@@ -801,52 +779,105 @@
         </div>
     </footer>
 
-    <!-- Floating Buttons - Right Side (Phone & Messenger) -->
+    <!-- Floating buttons -->
     <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
         <a href="tel:0631925541" class="w-14 h-14 bg-accent text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center" aria-label="โทรหาเรา">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-            </svg>
+            <svg class="w-7 h-7"><use href="#i-phone"/></svg>
         </a>
         <a href="https://www.facebook.com/lampangrentalcar" target="_blank" rel="noopener noreferrer" class="w-14 h-14 bg-[#0084FF] text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center" aria-label="Chat on Messenger">
-            <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16.6719 15.5625L17.2031 12.0729H13.875V9.8125C13.875 8.85938 14.3438 7.93125 15.8306 7.93125H17.3438V4.95C17.3438 4.95 15.971 4.725 14.6576 4.725C11.916 4.725 10.125 6.3875 10.125 9.4125V12.0729H7.07812V15.5625H10.125V24C10.125 24.001 10.125 24 10.125 24C10.125 24 13.875 24 13.875 24V15.5625H16.6719Z" fill="currentColor"/>
-            </svg>
+            <svg class="w-7 h-7"><use href="#i-fb"/></svg>
         </a>
         <a href="https://line.me/ti/p/~aompow" target="_blank" class="w-14 h-14 bg-[#06C755] text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center justify-center" aria-label="แอดไลน์">
-            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.349 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
-            </svg>
+            <svg class="w-8 h-8"><use href="#i-line"/></svg>
         </a>
     </div>
 
-    <!-- Mobile Menu Script -->
     <script>
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
+        // Mobile menu
+        const btn = document.getElementById('mobileMenuBtn');
+        const menu = document.getElementById('mobileMenu');
+        btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+        menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.add('hidden')));
 
-        mobileMenuBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
+        // Header shadow on scroll
+        const header = document.getElementById('header');
+        addEventListener('scroll', () => header.classList.toggle('shadow-md', scrollY > 10), { passive: true });
 
-        mobileMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
+        // Scroll reveal
+        const io = new IntersectionObserver(es => es.forEach(e => {
+            if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); }
+        }), { threshold: 0.08 });
+        document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+        // Sliders (cars / motorbikes / reviews)
+        document.querySelectorAll('[data-slider]').forEach(root => {
+            const track = root.querySelector('.track');
+            const slides = [...track.children];
+            const section = root.parentElement;
+            const prevs = [...section.querySelectorAll('[data-prev]')];
+            const nexts = [...section.querySelectorAll('[data-next]')];
+            const dotsBox = root.querySelector('[data-dots]');
+            let pages = 1, autoplay = null;
+
+            const step = () => slides[0].offsetWidth + parseFloat(getComputedStyle(track).columnGap || 20);
+            const perView = () => Math.max(1, Math.round((track.clientWidth + 1) / step()));
+            const maxScroll = () => track.scrollWidth - track.clientWidth;
+
+            function buildDots() {
+                pages = Math.max(1, Math.ceil(slides.length - perView() + 1));
+                dotsBox.innerHTML = '';
+                for (let i = 0; i < pages; i++) {
+                    const d = document.createElement('button');
+                    d.className = 'dot';
+                    d.setAttribute('aria-label', 'สไลด์ ' + (i + 1));
+                    d.addEventListener('click', () => { track.scrollTo({ left: i * step() }); restart(); });
+                    dotsBox.appendChild(d);
+                }
+                update();
+            }
+            function update() {
+                const i = Math.min(pages - 1, Math.round(track.scrollLeft / step()));
+                [...dotsBox.children].forEach((d, k) => d.classList.toggle('active', k === i));
+                prevs.forEach(b => b.disabled = track.scrollLeft <= 2);
+                nexts.forEach(b => b.disabled = track.scrollLeft >= maxScroll() - 2);
+            }
+            const go = dir => track.scrollBy({ left: dir * step() * (perView() > 1 ? perView() - 0 : 1) });
+            prevs.forEach(b => b.addEventListener('click', () => { go(-1); restart(); }));
+            nexts.forEach(b => b.addEventListener('click', () => { go(1); restart(); }));
+            track.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+            addEventListener('resize', buildDots);
+
+            // Mouse drag on desktop
+            let down = false, sx = 0, sl = 0, moved = false;
+            track.addEventListener('mousedown', e => { down = true; moved = false; sx = e.pageX; sl = track.scrollLeft; });
+            addEventListener('mouseup', () => {
+                if (!down) return; down = false;
+                track.classList.remove('dragging');
+                if (moved) track.scrollTo({ left: Math.round(track.scrollLeft / step()) * step() });
             });
+            addEventListener('mousemove', e => {
+                if (!down) return;
+                const dx = e.pageX - sx;
+                if (Math.abs(dx) > 5) { moved = true; track.classList.add('dragging'); }
+                track.scrollLeft = sl - dx;
+            });
+            track.addEventListener('click', e => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+
+            // Optional autoplay
+            const ms = parseInt(root.dataset.autoplay || '0', 10);
+            function tick() { track.scrollLeft >= maxScroll() - 2 ? track.scrollTo({ left: 0 }) : track.scrollBy({ left: step() }); }
+            function start() { if (ms) autoplay = setInterval(tick, ms); }
+            function stop() { clearInterval(autoplay); }
+            function restart() { stop(); start(); }
+            if (ms) {
+                root.addEventListener('mouseenter', stop);
+                root.addEventListener('mouseleave', start);
+                root.addEventListener('touchstart', stop, { passive: true });
+                root.addEventListener('touchend', start, { passive: true });
+                start();
+            }
+            buildDots();
         });
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
