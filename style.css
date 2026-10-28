@@ -1,0 +1,53 @@
+* { font-family: 'Noto Sans Thai', sans-serif; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+
+/* ---------- Slider ---------- */
+.track {
+    display: flex;
+    gap: 1.25rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0.5rem 0.25rem 1.25rem;
+}
+.track::-webkit-scrollbar { display: none; }
+.slide { flex: 0 0 84%; scroll-snap-align: start; }
+@media (min-width: 640px)  { .slide { flex: 0 0 calc((100% - 1.25rem) / 2); } }
+@media (min-width: 1024px) { .slide { flex: 0 0 calc((100% - 2.5rem) / 3); } }
+@media (min-width: 640px)  { .slide-4 { flex: 0 0 calc((100% - 1.25rem) / 2); } }
+@media (min-width: 1024px) { .slide-4 { flex: 0 0 calc((100% - 3.75rem) / 4); } }
+.track.dragging { scroll-snap-type: none; scroll-behavior: auto; cursor: grabbing; }
+
+.nav-btn {
+    width: 46px; height: 46px; border-radius: 9999px;
+    background: #fff; color: #1f2937;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(31,41,55,.18);
+    border: 1px solid #e5e7eb; transition: all .2s;
+}
+.nav-btn:hover:not(:disabled) { background: #047857; color: #fff; border-color: #047857; transform: scale(1.06); }
+.nav-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.dot { width: 8px; height: 8px; border-radius: 9999px; background: #1f2937; opacity: .25; transition: all .25s; }
+.dot.active { width: 26px; background: #047857; opacity: 1; }
+
+.card-lift { transition: transform .3s, box-shadow .3s; }
+.card-lift:hover { transform: translateY(-4px); box-shadow: 0 18px 36px rgba(31,41,55,.18); }
+
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; }
+.reveal.show { opacity: 1; transform: none; }
+
+.bg-theme { background: none; }
+/* one continuous slate gradient across the whole page (same slate-500 / 400 / 300 tones) */
+body {
+    min-height: 100vh; background-color: #94a3b8;
+    background-image:
+        radial-gradient(1000px 700px at 88% 3%,  rgba(255,255,255,.34), transparent 70%),
+        radial-gradient(900px 700px at 6% 24%,   rgba(255,255,255,.26), transparent 70%),
+        radial-gradient(1000px 800px at 94% 48%, rgba(255,255,255,.26), transparent 70%),
+        radial-gradient(900px 700px at 4% 70%,   rgba(255,255,255,.24), transparent 70%),
+        linear-gradient(180deg, #7a889d 0%, #a9b6c8 14%, #cbd5e1 30%, #a3b0c3 48%, #cbd5e1 66%, #94a3b8 84%, #7a889d 100%);
+}
+.footer-fade { background: linear-gradient(to bottom, transparent 0, #1f2937 7rem); }
